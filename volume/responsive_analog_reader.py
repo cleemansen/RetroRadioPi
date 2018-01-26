@@ -3,8 +3,7 @@
 #
 
 from mcp3208 import MCP3208
-import time
-import math
+import math, os, time
 
 adc = MCP3208()
 adcChannel = 0
@@ -33,6 +32,9 @@ ACTIVITY_THRESHOLD = 4;
 # may not be able to be pulled closer to the edges
 EDGE_SNAP_ENABLE = True;
 
+# the max resolution for 100% volume
+MAX_VOL_RESOLUTION = 300;
+
 # vars for responsiveAnalogRead
 smoothValue = 0;
 errorEMA = 0;
@@ -47,7 +49,13 @@ def loop():
 
         print('ADC[{}]: analogRead: {}, responsiveAnalogRead: {:.2f}, snap: {:.2f}, lastActivityMS: {}, errorEMA" {:.2f}, sleeping {}'
             .format(adcChannel, newValue, responsiveValue, globalSnap, lastActivityMS, errorEMA, sleeping))
-        time.sleep(0.5)
+        if (not sleeping):
+		setAlsaVolume(newValue)
+	time.sleep(0.5)
+
+def setAlsaVolume(newValue):
+	percentage = float(newValue / float(MAX_VOL_RESOLUTION)) * float(100)
+	os.system("sudo amixer set "+str(min(80,max(0, percentage)))+"%")
 
 def millis():
     millis = int(round(time.time() * 1000))
