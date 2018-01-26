@@ -40,15 +40,6 @@ lastActivityMS = 0;
 sleeping = False;
 globalSnap = False;
 
-# dynamic threshold based on the actual adc value
-def dynamicActivityThreshold(newValue):
-    if newValue <  164: return  90
-    if newValue <  377: return 205
-    if newValue < 1008: return 545
-    if newValue < 1037: return 500
-    if newValue < 1675: return 291
-    return ACTIVITY_THRESHOLD
-
 def loop():
     while True:
         newValue = adc.read(adcChannel)
@@ -73,17 +64,17 @@ def responsiveAnalogRead(newValue):
     ms = millis()
 
     # get current dynamic threshold
-    dynThreshold = ACTIVITY_THRESHOLD # dynamicActivityThreshold(newValue)
+    threshold = ACTIVITY_THRESHOLD # dynamicActivityThreshold(newValue)
 
     # if sleep and edge snap are enabled and the new value is very close to an edge,
     # drag it a little closer to the edges. This'll make it easier to pull the output
     # values right to the extremes without sleeping, and it'll make movements right
     # near the edge appear larger, making it easier to wake up.
     if(SLEEP_ENABLE and EDGE_SNAP_ENABLE):
-        if (newValue < dynThreshold):
-            newValue = newValue*2 - dynThreshold
-        elif (newValue > ANALOG_RESOLUTION - dynThreshold):
-            newValue = newValue*2 - ANALOG_RESOLUTION + dynThreshold
+        if (newValue < threshold):
+            newValue = newValue*2 - threshold
+        elif (newValue > ANALOG_RESOLUTION - threshold):
+            newValue = newValue*2 - ANALOG_RESOLUTION + threshold
 
     # get difference between new input value and current smooth value
     diff = abs(newValue - smoothValue)
@@ -98,7 +89,7 @@ def responsiveAnalogRead(newValue):
     if(SLEEP_ENABLE):
         # recalculate sleeping status
         # (asleep if last activity was over SLEEP_DELAY_MS ago)
-        sleeping = abs(errorEMA) < dynThreshold
+        sleeping = abs(errorEMA) < threshold
 
     # if we're allowed to sleep, and we're sleeping
     # then don't update responsiveValue this loop
