@@ -33,7 +33,7 @@ ACTIVITY_THRESHOLD = 4;
 EDGE_SNAP_ENABLE = True;
 
 # the max resolution for 100% volume
-MAX_VOL_RESOLUTION = 300;
+MAX_VOL_RESOLUTION = 615;
 
 # vars for responsiveAnalogRead
 smoothValue = 0;
@@ -47,15 +47,24 @@ def loop():
         newValue = adc.read(adcChannel)
         responsiveValue = responsiveAnalogRead(newValue)
 
-        print('ADC[{}]: analogRead: {}, responsiveAnalogRead: {:.2f}, snap: {:.2f}, lastActivityMS: {}, errorEMA" {:.2f}, sleeping {}'
-            .format(adcChannel, newValue, responsiveValue, globalSnap, lastActivityMS, errorEMA, sleeping))
+        print('ADC[{}]: analogRead: {}, responsiveAnalogRead: {:.2f}, snap: {:.2f}, lastActivityMS: {}, errorEMA: {:.2f}, threshold: {}, sleeping {}'
+            .format(adcChannel, newValue, responsiveValue, globalSnap, lastActivityMS, errorEMA, ACTIVITY_THRESHOLD, sleeping))
         if (not sleeping):
 		setAlsaVolume(newValue)
+	adjustThreshold(responsiveValue)
 	time.sleep(0.5)
+
+def adjustThreshold(newValue):
+	if (newValue < 683): return 8
+	elif (newValue < 1365): return 16
+	elif (newValue < 2048): return 41
+	elif (newValue < 2731): return 74
+	elif (newValue < 3413): return 152
+	return ACTIVITY_THRESHOLD
 
 def setAlsaVolume(newValue):
 	percentage = float(newValue / float(MAX_VOL_RESOLUTION)) * float(100)
-	os.system("sudo amixer set "+str(min(80,max(0, percentage)))+"%")
+	os.system("sudo amixer set PCM "+str(min(100,max(0, percentage)))+"%")
 
 def millis():
     millis = int(round(time.time() * 1000))
@@ -67,12 +76,14 @@ def responsiveAnalogRead(newValue):
     global lastActivityMS
     global sleeping
     global globalSnap
+    global ACTIVITY_THRESHOLD
 
     # get current milliseconds
     ms = millis()
 
     # get current dynamic threshold
-    threshold = ACTIVITY_THRESHOLD # dynamicActivityThreshold(newValue)
+    threshold = adjustThreshold(newValue) # ACTIVITY_THRESHOLD # dynamicActivityThreshold(newValue)
+    ACTIVITY_THRESHOLD = threshold
 
     # if sleep and edge snap are enabled and the new value is very close to an edge,
     # drag it a little closer to the edges. This'll make it easier to pull the output
